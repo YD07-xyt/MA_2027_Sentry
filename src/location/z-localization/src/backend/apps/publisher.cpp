@@ -41,6 +41,8 @@ void Publisher::configure() {
     if (parameters_.input.frontend == "zlio")
         odometry_pub_ =
             node_.create_publisher<nav_msgs::msg::Odometry>("/localization/odometry", 200);
+    body_odometry_pub_ = node_.create_publisher<nav_msgs::msg::Odometry>(
+        "/localization/body_odometry", rclcpp::QoS(200).reliable());
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
     // 状态保留最后一条，便于晚加入的消费者立即获取当前定位可信性。
     state_pub_ = node_.create_publisher<std_msgs::msg::String>("~/localization_state",
@@ -194,6 +196,7 @@ void Publisher::publishPrediction(const nav_msgs::msg::Odometry& odom,
     if (projection.status != LocalizationStatus::Initializing) {
         publishPoseWithCovariance(projection, odom.header.stamp);
         publishOdometry(odom, projection);
+        publishBodyOdometry(odom, projection);
     }
     publishLegacyOutput(odom, projection);
 }

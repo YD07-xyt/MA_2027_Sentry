@@ -5,6 +5,8 @@
 
 #include "apps/publisher.hpp"
 #include "apps/ros.hpp"
+#include "backend/covariance.hpp"
+#include "backend/math.hpp"
 
 namespace backend::ros {
 
@@ -83,10 +85,22 @@ void Publisher::publishLegacyOutput(const nav_msgs::msg::Odometry& odom,
     if (!legacy_twist_pub_) {
         return;
     }
+    geometry_msgs::msg::TwistStamped message;
+    message.header.frame_id = parameters_.input.map_frame;
+    message.header.stamp = odom.header.stamp;
+    if (bodyTwistInMap(odom, projection, T_map_body, &message.twist))
+        legacy_twist_pub_->publish(message);
+}
+
+/// 将传感器速度旋转到 map 系，并补偿传感器到车体原点的杆臂。
+bool Publisher::bodyTwistInMap(const nav_msgs::msg::Odometry& odom,
+                               const LocalizationProjection& projection,
+                               const Eigen::Matrix4d& T_map_body,
+                               geometry_msgs::msg::Twist* twist) const {
     Eigen::Vector3d linear_sensor = vectorFromRos(odom.twist.twist.linear);
     Eigen::Vector3d angular_sensor = vectorFromRos(odom.twist.twist.angular);
     if (!linear_sensor.allFinite() || !angular_sensor.allFinite()) {
-        return;
+        return false;
     }
     if (!projection.pose_trusted) {
         linear_sensor.setZero();
@@ -100,16 +114,49 @@ void Publisher::publishLegacyOutput(const nav_msgs::msg::Odometry& odom,
     const Eigen::Vector3d linear_body_map =
         R_map_sensor * linear_sensor + angular_map.cross(lever_map);
 
-    geometry_msgs::msg::TwistStamped message;
-    message.header.frame_id = parameters_.input.map_frame;
-    message.header.stamp = odom.header.stamp;
-    message.twist.linear.x = linear_body_map.x();
-    message.twist.linear.y = linear_body_map.y();
-    message.twist.linear.z = linear_body_map.z();
-    message.twist.angular.x = angular_map.x();
-    message.twist.angular.y = angular_map.y();
-    message.twist.angular.z = angular_map.z();
-    legacy_twist_pub_->publish(message);
+    twist->linear.x = linear_body_map.x();
+    twist->linear.y = linear_body_map.y();
+    twist->linear.z = linear_body_map.z();
+    twist->angular.x = angular_map.x();
+    twist->angular.y = angular_map.y();
+    twist->angular.z = angular_map.z();
+    return true;
+}
+
+/// 导航专用约定：pose 和 twist 都在 map 系，child_frame_id 标识车体参考点。
+void Publisher::publishBodyOdometry(const nav_msgs::msg::Odometry& input,
+                                    const LocalizationProjection& projection) {
+    if (!body_odometry_pub_ || !projection.pose_trusted || !projection.global_pose_available ||
+        projection.status == LocalizationStatus::Initializing)
+        return;
+    const Eigen::Matrix4d T_map_body =
+        parameters_.input.body_transform.bodyPoseFromSensorPose(projection.T_map_sensor);
+    nav_msgs::msg::Odometry output;
+    output.header = input.header;
+    output.header.frame_id = parameters_.input.map_frame;
+    output.child_frame_id = parameters_.input.body_frame;
+    output.pose.pose = matrixToPoseStamped(T_map_body, output.header.frame_id,
+                                           output.header.stamp).pose;
+    if (!bodyTwistInMap(input, projection, T_map_body, &output.twist.twist))
+        return;
+
+    const Eigen::Vector3d lever_map =
+        T_map_body.block<3, 1>(0, 3) - projection.T_map_sensor.block<3, 1>(0, 3);
+    const PoseCovariance6d pose_covariance = projection.pose_covariance_valid
+        ? projection.pose_covariance : fallbackFrontendPoseCovariance();
+    writePoseCovariance(propagateLeverArmCovariance(pose_covariance, lever_map),
+                        &output.pose.covariance);
+
+    // 条件于当前姿态和固定外参，传播前端速度协方差，保留线角速度交叉项。
+    const Eigen::Matrix3d rotation = projection.T_map_sensor.block<3, 3>(0, 0);
+    PoseCovariance6d jacobian = PoseCovariance6d::Zero();
+    jacobian.block<3, 3>(0, 0) = rotation;
+    jacobian.block<3, 3>(0, 3) = -skewMatrix(lever_map) * rotation;
+    jacobian.block<3, 3>(3, 3) = rotation;
+    const PoseCovariance6d twist_covariance =
+        jacobian * poseCovarianceFromRos(input.twist.covariance) * jacobian.transpose();
+    writePoseCovariance(twist_covariance, &output.twist.covariance);
+    body_odometry_pub_->publish(output);
 }
 
 }  // namespace backend::ros

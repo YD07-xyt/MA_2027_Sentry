@@ -83,6 +83,14 @@ private:
     /// 更新 map 系传感器位姿与协方差，不可信时清零速度并放大不确定度。
     void publishOdometry(const nav_msgs::msg::Odometry& input,
                          const LocalizationProjection& projection);
+    /// 仅可信时发布车体位姿与 map 系速度；不发布额外 TF。
+    void publishBodyOdometry(const nav_msgs::msg::Odometry& input,
+                             const LocalizationProjection& projection);
+    /// 复用兼容接口的速度旋转与杆臂补偿，输入无效时返回 false。
+    bool bodyTwistInMap(const nav_msgs::msg::Odometry& input,
+                        const LocalizationProjection& projection,
+                        const Eigen::Matrix4d& T_map_body,
+                        geometry_msgs::msg::Twist* twist) const;
     /// 发布允许推进的 map → odom TF 及同版本定位状态。
     void publishProjection(const LocalizationProjection& projection,
                            const builtin_interfaces::msg::Time& stamp);
@@ -122,6 +130,7 @@ private:
     FailureHandler failure_;
     const Localization* controller_ = nullptr;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr body_odometry_pub_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;

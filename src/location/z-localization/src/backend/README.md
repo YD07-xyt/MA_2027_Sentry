@@ -92,6 +92,7 @@ ZLIO 点云位于传感器坐标系，时间戳须与同一消息内的里程计
 | 话题 | 类型 | QoS | 内容 / 条件 |
 | --- | --- | --- | --- |
 | `/localization/odometry` | `nav_msgs/msg/Odometry` | reliable，200 | `zlio` 模式的 map 系传感器位姿、传感器系速度及协方差 |
+| `/localization/body_odometry` | `nav_msgs/msg/Odometry` | reliable，200 | 导航专用车体里程计：map 系位姿与 **map 系速度**；仅已建立全局位姿且定位可信时发布，与 legacy 开关无关 |
 | `~/localization_pose` | `geometry_msgs/msg/PoseWithCovarianceStamped` | reliable，20 | map 系车体位姿及协方差 |
 | `~/localization_state` | `std_msgs/msg/String` | reliable，1，transient local | 定位状态、可信标记、代次、输出版本及故障信息 |
 | `/localization/lio_world_cloud` | `sensor_msgs/msg/PointCloud2` | reliable，1 | map 系实时点云；由 `output.world_cloud` 控制 |
@@ -112,6 +113,26 @@ ZLIO 点云位于传感器坐标系，时间戳须与同一消息内的里程计
 | `/tf` | `tf2_msgs/msg/TFMessage` | tf2 默认 QoS | map → odom；兼容输出可另发布 map → body |
 
 兼容输出的总开关为 `output.legacy.enabled`，话题名通过 `output.legacy.*_topic` 配置。
+
+### 机器人里程计接入 ma_nav
+
+`/localization/body_odometry` 使用 `common.body` 固定外参计算车体参考点，
+`header.frame_id=common.map_frame`，`child_frame_id=common.body.frame`，时间戳沿用前端高频预测。
+线速度包含 `ω_map × r_map` 杆臂补偿，角速度同样在 map 系表达。
+**这是导航专用约定：twist 不在 child frame 表达，不可当作标准 ROS Odometry 直接接入其他融合器。**
+位姿协方差传播到车体原点；速度协方差按当前姿态及固定外参旋转并传播杆臂，
+保留线角速度交叉项，但不额外计入姿态和外参的不确定性。
+此话题不增加 TF；初始化或 `pose_trusted=false` 时停止发布，消费者必须自行实施超时停车与定位状态门控。
+`NORMAL` 和 `OBS_DEGRADED` 均属于可信状态。原 `/localization/odometry` 的语义保持不变。
+
+ma_nav 对应配置（按实际地图选择建图或规划模式）：
+
+```yaml
+ros2:
+  frame_id: map
+  map_topic_name: /localization/lio_world_cloud
+  odom_topic_name: /localization/body_odometry
+```
 
 ### 标定与 ROS 通用话题
 

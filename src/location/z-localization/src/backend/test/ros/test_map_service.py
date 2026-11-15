@@ -3,6 +3,7 @@
 import atexit
 from contextlib import ExitStack
 import hashlib
+import math
 import os
 from pathlib import Path
 import signal
@@ -42,6 +43,10 @@ def generate_test_description():
     parameters = {
         'common.frontend': 'zlio', 'common.odom_frame': 'odom',
         'common.input_cloud_in_local_frame': True,
+        'common.body.frame': 'robot', 'common.body.rotation.roll_deg': 0.0,
+        'common.body.rotation.pitch_deg': 0.0, 'common.body.rotation.yaw_deg': 0.0,
+        'common.body.offset.x': 1.0, 'common.body.offset.y': 0.0,
+        'common.body.offset.z': 0.0, 'output.legacy.enabled': False,
         'prior_map.enabled': False, 'uwb.enabled': False, 'loop.enabled': False,
         'trajectory.save_directory': str(parent / 'saved'),
         'trajectory.save_on_shutdown': False, 'trajectory.map_voxel_resolution': 0.0,
@@ -104,8 +109,13 @@ class TestMapService(unittest.TestCase):
         message.begin = header.stamp
         message.odometry.header = header
         message.odometry.child_frame_id = 'imu'
-        message.odometry.pose.pose.orientation.w = 1.0
+        message.odometry.pose.pose.orientation.z = math.sqrt(.5)
+        message.odometry.pose.pose.orientation.w = math.sqrt(.5)
         message.odometry.pose.pose.position.x = .5 * sequence
+        message.odometry.twist.twist.linear.x = 2.0
+        message.odometry.twist.twist.angular.z = 1.0
+        for axis in range(6):
+            message.odometry.twist.covariance[7 * axis] = .01
         for axis in range(6):
             message.odometry.pose.covariance[7 * axis] = .01
         cloud_header = Header(frame_id='imu', stamp=header.stamp)
@@ -127,14 +137,46 @@ class TestMapService(unittest.TestCase):
         received = []
         subscription = self.node.create_subscription(
             Odometry, '/localization/odometry', received.append, 20)
+        body_received = []
+        body_subscription = self.node.create_subscription(
+            Odometry, '/localization/body_odometry', body_received.append, 20)
         try:
             self.assertTrue(client.wait_for_service(timeout_sec=10))
             self.assertFalse(self.save(client).success,
                              'empty trajectory must not report a saved map')
             self.wait_until(lambda: publisher.get_subscription_count() > 0
                             and predictor.get_subscription_count() > 0)
+            # 尚无同步帧建立全局位姿时，即使收到预测也不得发布车体里程计。
+            initial = FrontendOdometry(instance_id=901, epoch=0)
+            initial.odometry.header.frame_id = 'odom'
+            initial.odometry.header.stamp.sec = 10
+            initial.odometry.child_frame_id = 'imu'
+            initial.odometry.pose.pose.orientation.w = 1.0
+            deadline = time.monotonic() + .5
+            while time.monotonic() < deadline:
+                predictor.publish(initial)
+                rclpy.spin_once(self.node, timeout_sec=.05)
+            self.assertFalse(body_received)
             for sequence in range(1, 4):
                 self.publish_frame(publisher, predictor, received, sequence)
+            self.wait_until(lambda: any(m.header.stamp.sec == 13 for m in body_received))
+            body = next(m for m in body_received if m.header.stamp.sec == 13)
+            sensor = next(m for m in received if m.header.stamp.sec == 13)
+            self.assertEqual(body.header.frame_id, 'map')
+            self.assertEqual(body.child_frame_id, 'robot')
+            self.assertEqual(body.header.stamp, sensor.header.stamp)
+            # yaw=90°，杆臂在 map 中为 (0,1,0)：v=(0,2,0)+(-1,0,0)。
+            self.assertAlmostEqual(body.pose.pose.position.x, sensor.pose.pose.position.x)
+            self.assertAlmostEqual(body.pose.pose.position.y, sensor.pose.pose.position.y + 1.0)
+            self.assertAlmostEqual(body.pose.pose.orientation.z, sensor.pose.pose.orientation.z)
+            self.assertAlmostEqual(body.twist.twist.linear.x, -1.0)
+            self.assertAlmostEqual(body.twist.twist.linear.y, 2.0)
+            self.assertAlmostEqual(body.twist.twist.angular.z, 1.0)
+            self.assertAlmostEqual(sensor.twist.twist.linear.x, 2.0)
+            self.assertAlmostEqual(sensor.twist.twist.linear.y, 0.0)
+            self.assertAlmostEqual(body.twist.covariance[0], .02)
+            self.assertAlmostEqual(body.twist.covariance[5], -.01)
+            self.assertGreater(body.pose.covariance[0], sensor.pose.covariance[0])
             self.assertTrue(self.save(client).success)
             before = fingerprint(destination)
             self.assertIn('map.pcd', before)
@@ -189,6 +231,7 @@ class TestMapService(unittest.TestCase):
                 self.assertEqual(child.returncode, 0, (root / 'reload.log').read_text())
             self.assertEqual(fingerprint(destination), before)
         finally:
+            self.node.destroy_subscription(body_subscription)
             self.node.destroy_subscription(subscription)
             self.node.destroy_publisher(publisher)
             self.node.destroy_publisher(predictor)
