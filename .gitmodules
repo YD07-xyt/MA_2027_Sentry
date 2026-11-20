@@ -4,3 +4,6 @@
 [submodule "src/navigation"]
 	path = src/navigation
 	url = git@github.com:YD07-xyt/MA_2027_nav.git
+[submodule "src/simulator/MA_2027_Simulation"]
+	path = src/simulator/MA_2027_Simulation
+	url = git@github.com:YD07-xyt/MA_2027_Simulation.git
