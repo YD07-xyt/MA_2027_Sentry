@@ -2,6 +2,7 @@ build
 install
 log
 .vscode
+pcd
 .cache
 src/bringup/maps/auto_save
 /src/nav/pb2025_nav_bringup/pcd/reality/*pcd
