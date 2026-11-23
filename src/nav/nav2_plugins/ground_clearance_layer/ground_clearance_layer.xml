@@ -1,0 +1,13 @@
+<class_libraries>
+  <library path="ground_clearance_layer">
+    <class
+      name="ground_clearance_layer::GroundClearanceLayer"
+      type="ground_clearance_layer::GroundClearanceLayer"
+      base_class_type="nav2_costmap_2d::Layer">
+      <description>
+        Evidence-based costmap layer fusing ground and non-ground PointCloud2 topics with local
+        tilted-plane ground estimation and robot height collision-corridor clearance filtering.
+      </description>
+    </class>
+  </library>
+</class_libraries>

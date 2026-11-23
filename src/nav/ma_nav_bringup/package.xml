@@ -25,8 +25,8 @@
   <exec_depend>pb_teleop_twist_joy</exec_depend>
   <exec_depend>livox_ros_driver2</exec_depend>
   <exec_depend>point_lio</exec_depend>
-  <exec_depend>terrain_analysis</exec_depend>
-  <exec_depend>terrain_analysis_ext</exec_depend>
+  <exec_depend>patchworkpp</exec_depend>
+  <exec_depend>ground_clearance_layer</exec_depend>
   <exec_depend>pb_omni_pid_pursuit_controller</exec_depend>
   <exec_depend>small_gicp_relocalization</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>

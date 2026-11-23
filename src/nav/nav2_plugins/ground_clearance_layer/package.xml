@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ground_clearance_layer</name>
+  <version>1.0.0</version>
+  <description>
+    Nav2 Costmap2D layer combining Patchwork++ ground/non-ground clouds with local tilted-plane
+    ground modeling, robot collision-corridor clearance filtering, and dt-based evidence competition.
+  </description>
+  <maintainer email="xyt@todo.todo">xyt</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>pluginlib</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <nav2_costmap_2d plugin="${prefix}/ground_clearance_layer.xml" />
+  </export>
+</package>

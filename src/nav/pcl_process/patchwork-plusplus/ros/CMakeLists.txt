@@ -22,11 +22,13 @@ else()
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 # ROS 2 node. gseg: Abbrev. of `g`round `seg`mentation
@@ -44,6 +46,7 @@ ament_target_dependencies(
   nav_msgs
   sensor_msgs
   geometry_msgs
+  tf2
   tf2_ros)
 
 rclcpp_components_register_node(gseg_component PLUGIN "patchworkpp_ros::GroundSegmentationServer" EXECUTABLE patchworkpp_node)

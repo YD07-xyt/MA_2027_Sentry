@@ -193,7 +193,42 @@ inline std::unique_ptr<PointCloud2> EigenToPointCloud2(const std::vector<Eigen::
 inline std::unique_ptr<PointCloud2> EigenMatToPointCloud2(const Eigen::MatrixX3f &points,
                                                           const Header &header) {
   auto msg = CreatePointCloud2Msg(points.rows(), header);
-  FillPointCloud2XYZ(points, *msg);
+  if (points.rows() > 0) {
+    FillPointCloud2XYZ(points, *msg);
+  }
   return msg;
+}
+
+inline std::unique_ptr<PointCloud2> EigenMatToPointCloud2WithIntensity(
+    const Eigen::MatrixX4f &points, const Header &header) {
+  auto cloud_msg = std::make_unique<PointCloud2>();
+  sensor_msgs::PointCloud2Modifier modifier(*cloud_msg);
+  cloud_msg->header          = header;
+  cloud_msg->header.frame_id = FixFrameId(cloud_msg->header.frame_id);
+  cloud_msg->fields.clear();
+  int offset = 0;
+  offset     = addPointField(*cloud_msg, "x", 1, PointField::FLOAT32, offset);
+  offset     = addPointField(*cloud_msg, "y", 1, PointField::FLOAT32, offset);
+  offset     = addPointField(*cloud_msg, "z", 1, PointField::FLOAT32, offset);
+  offset     = addPointField(*cloud_msg, "intensity", 1, PointField::FLOAT32, offset);
+
+  cloud_msg->point_step = offset;
+  cloud_msg->row_step   = cloud_msg->width * cloud_msg->point_step;
+  cloud_msg->data.resize(cloud_msg->height * cloud_msg->row_step);
+  modifier.resize(points.rows());
+
+  if (points.rows() > 0) {
+    sensor_msgs::PointCloud2Iterator<float> msg_x(*cloud_msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> msg_y(*cloud_msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> msg_z(*cloud_msg, "z");
+    sensor_msgs::PointCloud2Iterator<float> msg_i(*cloud_msg, "intensity");
+    for (Eigen::Index i = 0; i < points.rows(); ++i, ++msg_x, ++msg_y, ++msg_z, ++msg_i) {
+      *msg_x = points(i, 0);
+      *msg_y = points(i, 1);
+      *msg_z = points(i, 2);
+      *msg_i = points(i, 3);
+    }
+  }
+  return cloud_msg;
 }
 }  // namespace patchworkpp_ros::utils

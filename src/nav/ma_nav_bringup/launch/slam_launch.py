@@ -133,7 +133,7 @@ def generate_launch_description():
         parameters=[configured_params],
         arguments=["--ros-args", "--log-level", log_level],
         remappings=[
-            ("cloud_in", "terrain_map_ext"),
+            ("cloud_in", "patchworkpp/obstacles"),
             ("scan", "obstacle_scan"),
         ],
     )

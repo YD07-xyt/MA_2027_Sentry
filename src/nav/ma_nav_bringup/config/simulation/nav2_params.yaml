@@ -89,54 +89,45 @@ sensor_scan_generation:
     base_frame: "base_link"
     robot_base_frame: "base_link"
 
-terrain_analysis:
+patchworkpp_node:
   ros__parameters:
-    scanVoxelSize: 0.05                 # 点云下采样
-    decayTime: 0.5                      # 点云时间差阈值 大于则不会被处理
-    noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
-    clearingDis: 0.0                    # 该距离外的点会被清除
-    useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
-    quantileZ: 0.2                      # useful if use_sorting is enabled.
-    considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
-    limitGroundLift: False
-    maxGroundLift: 0.3
-    clearDyObs: True                    # 清除动态物体的话，有动态物体走过的地方就走不了了
-    minDyObsDis: 0.3                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
-    minDyObsAngle: 0.0
-    minDyObsRelZ: -0.3
-    absDyObsRelZThre: 0.2
-    minDyObsVFOV: -28.0
-    maxDyObsVFOV: 33.0
-    minDyObsPointNum: 1
-    noDataObstacle: False               # treat no data as obstacle
-    noDataBlockSkipNum: 0
-    minBlockPointNum: 10
-    vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
-    voxelPointUpdateThre: 100
-    voxelTimeUpdateThre: 1.0
-    minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
-    maxRelZ: 0.5
-    disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
-
-terrain_analysis_ext:
-  ros__parameters:
-    scanVoxelSize: 0.1
-    decayTime: 0.2
-    noDecayDis: 0.0
-    clearingDis: 20.0
-    useSorting: true
-    quantileZ: 0.2
-    vehicleHeight: 1.0
-    voxelPointUpdateThre: 100
-    voxelTimeUpdateThre: 2.0
-    lowerBoundZ: -1.5
-    upperBoundZ: 0.5
-    disRatioZ: 0.2
-    checkTerrainConn: False
-    terrainUnderVehicle: -0.75
-    terrainConnThre: 0.5
-    ceilingFilteringThre: 2.0
-    localTerrainMapRadius: 4.0
+    use_sim_time: True
+    algorithm: "patchworkpp"
+    odom_frame: "odom"
+    base_frame: "base_link"
+    tf_timeout: 0.1
+    accum_frames: 4                                     # 滑窗累积帧数，补偿 point_filter_num=8 的稀疏性
+    origin_z_offset: 0.50                               # 相对 base_link 上移至虚拟重力对齐雷达中心
+    sensor_height: 0.56                                 # 仿真 base_link 离地 0.06m + origin_z_offset 0.50m
+    min_range: 0.40                                     # 剔除机身盲区与自遮挡点
+    max_range: 9.0
+    max_rel_z_below: -1.5                               # 相对 base_link 的 Z 预滤波下界
+    max_rel_z_above: 2.5                                # 相对 base_link 的 Z 预滤波上界
+    num_iter: 3
+    num_lpr: 5                                          # 降低每扇区种子数，避免远距稀疏地面混入墙点
+    num_min_pts: 4
+    th_seeds: 0.15
+    th_dist: 0.12
+    th_seeds_v: 0.25
+    th_dist_v: 0.10
+    uprightness_thr: 0.85                               # cos(31.8°)，覆盖 22° 赛场坡面并拒绝陡坎/墙面
+    adaptive_seed_selection_margin: -2.5                # 允许下坡地面点不被当成地下噪点滤除
+    enable_RVPF: True
+    enable_TGR: True
+    num_sectors_each_zone: [8, 12, 12, 8]               # 室内紧凑 CZM（共 80 扇区，避免远距稀疏漏分地面）
+    num_rings_each_zone: [2, 2, 2, 2]
+    verbose: False
+    # 供 SLAM (pointcloud_to_laserscan) 与 RViz 可视化的通行净空过滤障碍云（intensity = 离地净高）
+    publish_filtered_obstacles: True
+    min_clearance: 0.10
+    robot_height: 0.70
+    obstacle_max_range: 7.0                             # 远距掠射地面不可靠，限制过滤障碍输出半径
+    obstacle_ground_grid_res: 0.30
+    obstacle_ground_search_radius: 2                    # 细网格倾斜平面搜索半径（±0.60m）
+    obstacle_ground_bridge_res: 0.60
+    obstacle_ground_bridge_radius: 4                    # 粗网格地面桥接半径（±2.40m，跨越隧道未打地面的区域）
+    near_unknown_ground_range: 2.5                      # 仅近距允许回退机器人脚下高度；远距需满足竖直结构厚度
+    min_unknown_ground_z_span: 0.22                     # 远距无细地面支撑时的最小竖直跨度（过滤远处薄层误分地面）
 
 small_gicp_relocalization:
   ros__parameters:
@@ -159,7 +150,7 @@ pointcloud_to_laserscan:
   ros__parameters:
     use_sim_time: True
     target_frame: base_link
-    min_height: -0.5
+    min_height: -1.5
     max_height: 6.0
     min_intensity: 0.1
     max_intensity: 2.0
@@ -455,34 +446,39 @@ local_costmap:
       height: 5
       resolution: 0.05
       robot_radius: 0.2
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
-      intensity_voxel_layer:
-        plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+      plugins: ["static_layer", "ground_clearance_layer", "inflation_layer"]
+      ground_clearance_layer:
+        plugin: "ground_clearance_layer::GroundClearanceLayer"
         enabled: true
-        track_unknown_space: true
-        footprint_clearing_enabled: true
-        publish_voxel_map: false
+        # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
+        ground_points_topic: <robot_namespace>/patchworkpp/ground
+        nonground_points_topic: <robot_namespace>/patchworkpp/nonground
+        robot_base_frame: base_link
+        robot_base_height: 0.06
+        tf_timeout: 0.1
         combination_method: 1
-        mark_threshold: 0
-        origin_z: 0.0
-        unknown_threshold: 5
-        z_resolution: 0.05
-        z_voxels: 16
-        min_obstacle_height: 0.0
-        max_obstacle_height: 2.0
-        min_obstacle_intensity: 0.1
-        max_obstacle_intensity: 2.0
-        observation_sources: terrain_map
-        terrain_map:
-          data_type: PointCloud2
-          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
-          # It doesn't need to start with '/'
-          topic: <robot_namespace>/terrain_map
-          sensor_frame: livox_frame
-          min_obstacle_height: 0.0
-          max_obstacle_height: 2.0
-          obstacle_max_range: 5.0
-          obstacle_min_range: 0.2
+        ground_inc: 1.0
+        obstacle_inc: 1.5
+        ground_decay_tau: 0.5
+        obstacle_decay_tau: 0.8
+        obstacle_occ_thresh: 2.0
+        obstacle_prob_thresh: 0.65
+        max_score: 500.0
+        discretize_costs: true
+        min_clearance: 0.10
+        robot_height: 0.70
+        unknown_ground_is_lethal: true
+        near_unknown_ground_range: 2.5
+        min_unknown_ground_z_span: 0.22
+        ground_patch_res: 0.30
+        ground_neighbor_search_cells: 2
+        ground_bridge_res: 0.60
+        ground_bridge_search_cells: 4
+        ground_height_ema_alpha: 0.35
+        ground_patch_decay_tau: 3.0
+        max_plane_slope_deg: 32.0
+        max_data_range: 4.5
+        footprint_clearing_enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -502,34 +498,39 @@ global_costmap:
       robot_base_frame: base_link
       robot_radius: 0.2
       resolution: 0.05
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
-      intensity_voxel_layer:
-        plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+      plugins: ["static_layer", "ground_clearance_layer", "inflation_layer"]
+      ground_clearance_layer:
+        plugin: "ground_clearance_layer::GroundClearanceLayer"
         enabled: true
-        track_unknown_space: true
-        footprint_clearing_enabled: true
-        publish_voxel_map: false
+        # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
+        ground_points_topic: <robot_namespace>/patchworkpp/ground
+        nonground_points_topic: <robot_namespace>/patchworkpp/nonground
+        robot_base_frame: base_link
+        robot_base_height: 0.06
+        tf_timeout: 0.1
         combination_method: 1
-        mark_threshold: 0
-        origin_z: 0.0
-        unknown_threshold: 5
-        z_resolution: 0.05
-        z_voxels: 16
-        min_obstacle_height: 0.0
-        max_obstacle_height: 2.0
-        min_obstacle_intensity: 0.1
-        max_obstacle_intensity: 2.0
-        observation_sources: terrain_map_ext
-        terrain_map_ext:
-          data_type: PointCloud2
-          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
-          # It doesn't need to start with '/'
-          topic: <robot_namespace>/terrain_map_ext
-          sensor_frame: livox_frame
-          min_obstacle_height: 0.0
-          max_obstacle_height: 2.0
-          obstacle_max_range: 10.0
-          obstacle_min_range: 0.2
+        ground_inc: 1.0
+        obstacle_inc: 1.5
+        ground_decay_tau: 0.5
+        obstacle_decay_tau: 1.2
+        obstacle_occ_thresh: 2.0
+        obstacle_prob_thresh: 0.65
+        max_score: 500.0
+        discretize_costs: true
+        min_clearance: 0.10
+        robot_height: 0.70
+        unknown_ground_is_lethal: true
+        near_unknown_ground_range: 2.5
+        min_unknown_ground_z_span: 0.22
+        ground_patch_res: 0.30
+        ground_neighbor_search_cells: 2
+        ground_bridge_res: 0.60
+        ground_bridge_search_cells: 4
+        ground_height_ema_alpha: 0.35
+        ground_patch_decay_tau: 3.0
+        max_plane_slope_deg: 32.0
+        max_data_range: 7.0
+        footprint_clearing_enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True

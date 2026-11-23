@@ -114,28 +114,6 @@ def generate_launch_description():
         "log_level", default_value="info", description="log level"
     )
 
-    start_terrain_analysis_cmd = Node(
-        package="terrain_analysis",
-        executable="terrainAnalysis",
-        name="terrain_analysis",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-    )
-
-    start_terrain_analysis_ext_cmd = Node(
-        package="terrain_analysis_ext",
-        executable="terrainAnalysisExt",
-        name="terrain_analysis_ext",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-    )
-
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(["not ", use_composition])),
         actions=[
@@ -158,6 +136,17 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
+            ),
+            Node(
+                package="patchworkpp",
+                executable="patchworkpp_node",
+                name="patchworkpp_node",
+                output="screen",
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=["--ros-args", "--log-level", log_level],
+                remappings=[("pointcloud_topic", "registered_scan")],
             ),
             Node(
                 package="nav2_controller",
@@ -266,6 +255,13 @@ def generate_launch_description():
                 parameters=[configured_params],
             ),
             ComposableNode(
+                package="patchworkpp",
+                plugin="patchworkpp_ros::GroundSegmentationServer",
+                name="patchworkpp_node",
+                parameters=[configured_params],
+                remappings=[("pointcloud_topic", "registered_scan")],
+            ),
+            ComposableNode(
                 package="nav2_controller",
                 plugin="nav2_controller::ControllerServer",
                 name="controller_server",
@@ -344,8 +340,6 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(start_terrain_analysis_cmd)
-    ld.add_action(start_terrain_analysis_ext_cmd)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 
