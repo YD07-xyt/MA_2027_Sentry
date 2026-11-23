@@ -1,1 +1,1 @@
-rviz2 -d /home/ma/nav/NavX/src/nav/pb2025_nav_bringup/rviz/nav2_default_view.rviz
+rviz2 -d /home/ma/nav/NavX/src/nav/ma_nav_bringup/rviz/nav2_default_view.rviz

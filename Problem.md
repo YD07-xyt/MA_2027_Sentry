@@ -14,8 +14,8 @@ chmod +x build.sh
 
 ## 配置雷达
 
-在pb2025_nav_bringup/config下  
-[配置文件位置](pb2025_nav_bringup/config/reality/mid360_user_config.json)  
+在ma_nav_bringup/config下  
+[配置文件位置](ma_nav_bringup/config/reality/mid360_user_config.json)  
 reality/mid360_user_config.json中 
 
 
@@ -53,7 +53,7 @@ chmod +x mid360.sh
 
 **查看到的乘以9.81**  
 **注意重力方向加负号**  
-填入[配置文件位置](src/pb2025_nav_bringup/config/reality/nav2_params.yaml)的 mapping:下的gravity， gravity_init处
+填入[配置文件位置](src/ma_nav_bringup/config/reality/nav2_params.yaml)的 mapping:下的gravity， gravity_init处
 
 注意： point_lio中的config修改后无效(没用到)
 

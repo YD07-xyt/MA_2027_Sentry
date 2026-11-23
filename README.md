@@ -49,7 +49,7 @@ ros2 launch serial serial.launch.py
 
 ```bash
 source install/setup.bash  
-ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
+ros2 launch ma_nav_bringup rm_navigation_reality_launch.py \
 world:=rmuc_2025 \
 slam:=False \
 use_robot_state_pub:=True
@@ -62,13 +62,13 @@ use_robot_state_pub:=True
 
 ```bash
 source install/setup.bash  
-ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
+ros2 launch ma_nav_bringup rm_navigation_reality_launch.py \
 slam:=True \
 use_robot_state_pub:=True
 ```
 
 ```bash
-ros2 run nav2_map_server map_saver_cli -f ./src/nav/pb2025_nav_bringup/map/reality/ma --ros-args -r map:=/map
+ros2 run nav2_map_server map_saver_cli -f ./src/nav/ma_nav_bringup/map/reality/ma --ros-args -r map:=/map
 ```
 
 #### 建图补tf

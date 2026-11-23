@@ -20,7 +20,7 @@ tf_odom2base="ros2 run tf2_ros static_transform_publisher \
 source_cmd="source install/setup.bash"
 
 
-build_map="ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
+build_map="ros2 launch ma_nav_bringup rm_navigation_reality_launch.py \
             slam:=True \
             use_rviz:=True \
             use_robot_state_pub:=True"
