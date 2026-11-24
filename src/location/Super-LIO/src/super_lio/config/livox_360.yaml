@@ -31,7 +31,7 @@
     # 角度单位是“度（deg）”，不是弧度：倒装 IMU 应写 180.0 而不是 3.14
     #lio.extrinsic.odom_robo: [-0.038, 0.0, 0.433, 180.0, 0.0, 0.0]
     #lio.extrinsic.odom_robo: [0.011, 0.02329, -0.04412, 180.0, 0.0, 0.0]
-    lio.extrinsic.odom_robo: [0.011, -0.02329, 0.19412, 0.0, 0.0, 0.0]
+    lio.extrinsic.odom_robo: [0.011, 0.02329, 0.10588, 0.0, 0.0, 0.0]
     lio.hash_map.hash_capacity: 2000000
     lio.hash_map.vox_resolution: 0.3
 
