@@ -17,6 +17,14 @@ ros2 launch livox_ros_driver2 msg_MID360_launch.py
 launch文件中的xfer_format 为发布的点云话题类型
 publish_freq为发布频率
 
+## 建图
+
+docs/建图.md
+
+## 导航
+
+docs/导航.md
+
 ### 定位
 
 ### super lio

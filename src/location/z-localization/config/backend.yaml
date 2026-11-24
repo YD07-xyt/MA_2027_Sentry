@@ -18,20 +18,22 @@ common:
   input_cloud_in_local_frame: true
   body:
     #xyz -0.038, 0, 0.433; rpy 3.14, 0, 0
+    # 实测 LiDAR 光心->云台 = [0.038, 0, -0.433] (云台系)；加上倒置 Mid-360 内部 IMU->LiDAR R_x(180°)*[-0.011, -0.02329, 0.04412] = [-0.011, 0.02329, -0.04412]，
+    # 得到 IMU->云台(body) 精确位移 [0.027, 0.02329, -0.47712] m。
     rotation:
       # sensor 到 body 固定外参的滚转角，单位为度。
-      roll_deg: 180
+      roll_deg: 180.0
       # sensor 到 body 固定外参的俯仰角，单位为度。
       pitch_deg: 0.0
       # sensor 到 body 固定外参的偏航角，单位为度。
       yaw_deg: 0.0
     offset:
-      # sensor 原点指向 body 原点的 X 分量，在 body 系表达，单位为米。
-      x: 0.038
-      # sensor 原点指向 body 原点的 Y 分量，在 body 系表达，单位为米。
-      y: 0.0
-      # sensor 原点指向 body 原点的 Z 分量，在 body 系表达，单位为米。
-      z: -0.433
+      # sensor(IMU) 原点指向 body(云台) 原点的 X 分量，在 body 系表达，单位为米。
+      x: 0.027
+      # sensor(IMU) 原点指向 body(云台) 原点的 Y 分量，在 body 系表达，单位为米。
+      y: 0.02329
+      # sensor(IMU) 原点指向 body(云台) 原点的 Z 分量，在 body 系表达，单位为米。
+      z: -0.47712
     # 车体输出坐标系名称。
     frame: body
   scan_context:
@@ -46,7 +48,7 @@ common:
     # 描述子输入点云的体素边长，单位为米。
     downsample: 0.6
     # 描述子使用的雷达安装高度，单位为米。
-    lidar_height: 0.35
+    lidar_height: 0.60
     # 一个描述子栅格成为有效栅格所需的最少点数。
     min_bin_points: 1
     # 每个关键帧的描述子总数，包含原始描述子。
@@ -91,7 +93,7 @@ trajectory:
   # 保存地图包时是否额外输出合并后的全局 PCD。
   save_global_pcd: true
   # 合并运行地图时使用的体素边长，单位为米。
-  map_voxel_resolution: 0.15
+  map_voxel_resolution: 0.05
 registration:
   # 共享点到面配准的输入体素边长，单位为米。
   voxel_resolution: 0.4

@@ -14,5 +14,6 @@ log
 /src/nav/gcopter/.agents
 /src/nav/gcopter/3rd
 .dsh
+ros2bag
 pcd
 docs/ai_refactor_records
